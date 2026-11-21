@@ -1,0 +1,21 @@
+{
+  "id": "./",
+  "name": "ميزان النقاط — الرجيم الفرنسي",
+  "short_name": "ميزان النقاط",
+  "description": "تقدير رجيم النقاط الكلاسيكي مع ٨٦٩ صنفًا والأكلات المنزلية والمطاعم والإضافات",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "lang": "ar",
+  "dir": "rtl",
+  "background_color": "#eef8f5",
+  "theme_color": "#087D78",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
