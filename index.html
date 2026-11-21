@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#087D78"><meta name="description" content="ميزان النقاط: رجيم النقاط الكلاسيكي، أطعمة منزلية ومطاعم، إضافات وصوصات، حاسبة السعرات إلى نقاط. تقديرات غير رسمية.">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="ميزان النقاط">
+<link rel="manifest" href="./manifest.webmanifest"><link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="./icon.svg">
+<link rel="stylesheet" href="./styles.css?v=1"><title>ميزان النقاط — خطوتك اليومية</title>
+<script defer src="./foods-usda.js?v=1"></script><script defer src="./foods-local.js?v=1"></script><script defer src="./app.js?v=1"></script>
+</head>
+<body>
+<div class="app-shell">
+<header class="topbar">
+  <div class="brand"><img src="./icon.svg" alt="شعار ميزان النقاط"><div><strong>ميزان النقاط</strong><small>نقاط أذكى • اختيار أسهل</small></div></div>
+  <div class="top-actions"><button id="installBtn" class="tiny-btn hidden" type="button">تثبيت</button><button id="themeToggle" class="icon-btn" aria-label="تغيير المظهر" type="button">☾</button></div>
+</header>
+<main id="mainContent">
+<section id="view-home" class="view active" aria-label="يومي">
+<div class="welcome"><div><p class="eyebrow" id="todayLabel"></p><h1>كل نقطة تصنع فرقًا <span class="spark">✦</span></h1><p class="subline">سجّل طعامك بالحصة التي أكلتها فعلًا، لا بحجم مفترض.</p></div><span class="plan-pill">رجيم النقاط</span></div>
+<article class="card hero">
+<div class="row between center"><div><span class="card-label">رصيدك التقديري اليوم</span><div class="big-number"><span id="pointsRemain">—</span><small>نقطة متبقية</small></div></div><div class="ring" id="todayRing"><b id="ringText">0%</b></div></div>
+<div class="progress"><span id="pointsBar" class="progress-fill mint"></span></div>
+<div class="row between small"><span id="pointsUsed">المستهلك: —</span><span id="pointsBudget">الميزانية: —</span></div>
+<p class="hero-foot">الميزانية يحددها المستخدم، والنقاط غير رسمية وتختلف عن الأنظمة الحديثة.</p>
+<button class="btn btn-light full" data-go="foods">＋ ابحث وسجّل وجبة</button>
+</article>
+<div class="mini-grid">
+<article class="card metric"><span class="metric-label">💧 الماء</span><h2><span id="waterToday">0</span> <small>مل</small></h2><p id="waterGoalText" class="micro"></p><div class="progress"><span id="waterBar" class="progress-fill blue"></span></div><div class="quick-actions"><button class="chip" data-water="250">+ ٢٥٠ مل</button><button class="chip" data-water="500">+ ٥٠٠ مل</button></div></article>
+<article class="card metric"><span class="metric-label">🏃 الحركة</span><h2><span id="activityToday">0</span> <small>دقيقة</small></h2><p class="micro">لا تُضاف تلقائيًا إلى النقاط</p><div class="quick-actions"><button class="chip" data-action="activity">+ نشاط</button></div></article>
+</div>
+<article class="card weight-strip"><div><span class="card-label">الوزن المسجّل</span><div class="weight-display"><strong id="weightDisplay">—</strong><small>كجم</small></div><p class="micro">مراقبة اتجاه الوزن دون ربط آلي بالنقاط</p></div><button class="btn btn-outline" data-action="weight">+ وزن</button></article>
+<div class="section-title"><h2>سجل اليوم</h2><button class="text-btn" data-go="log">كل السجلات ←</button></div>
+<div id="homeLogs" class="log-list"></div>
+<div class="section-title"><h2>هذا الأسبوع</h2><span class="micro">النقاط المسجلة</span></div><article class="card"><div id="weekBars" class="week-bars"></div></article>
+</section>
+<section id="view-foods" class="view" aria-label="دليل الأطعمة">
+<div class="page-title"><h1>دليل الأطعمة <span class="spark">✦</span></h1><p>ابحث باسم الأكل أو المطعم، ثم اختر الكمية الحقيقية. يشمل أصنافًا عربية وبيانات USDA.</p></div>
+<div class="card search-panel"><label for="foodSearch">ابحث في قاعدة الأطعمة</label><input id="foodSearch" type="search" placeholder="مثال: كبسة، برجر، سنيكرز، ملعقة مايونيز" autocomplete="off">
+<div class="two-fields"><div><label for="foodCategory">التصنيف</label><select id="foodCategory"><option value="">جميع الأصناف</option></select></div><div><label for="foodSource">البيانات</label><select id="foodSource"><option value="">الجميع</option><option value="تقدير">أكلات محلية ومطاعم</option><option value="USDA">مرجع USDA</option><option value="شخصي">إضافاتي الخاصة</option></select></div></div>
+<div class="search-summary"><span id="foodCount">—</span><button class="text-btn" data-action="custom-form">＋ أضف طعامًا أو صوصًا</button></div>
+</div>
+<div class="list" id="foodResults" aria-live="polite"></div>
+<p class="micro centered" id="resultsMore"></p>
+</section>
+<section id="view-compose" class="view" aria-label="تكوين وجبة">
+<div class="page-title"><h1>تكوين الوجبة</h1><p>أضف الصوص والجبن والبطاطس والمشروبات، مع إمكانية تعديل كل كمية.</p></div>
+<div id="builder" class="card"></div>
+</section>
+<section id="view-log" class="view" aria-label="السجل والمتابعة">
+<div class="page-title"><h1>سجل النقاط</h1><p>إجمالي اليوم والتفاصيل ومكونات كل وجبة، مع سجل الماء والنشاط.</p></div>
+<article class="card"><label for="historyDate">اختر اليوم</label><input type="date" id="historyDate"><div class="stats-grid"><div><span>النقاط</span><strong id="historyPoints">0</strong></div><div><span>السعرات</span><strong id="historyKcal">0</strong></div><div><span>الوجبات</span><strong id="historyMeals">0</strong></div></div></article>
+<div id="historyLogs" class="log-list"></div>
+<article class="card"><h2>آخر ٧ أيام</h2><div id="historyWeek" class="week-bars"></div></article>
+</section>
+<section id="view-settings" class="view" aria-label="الإعدادات والحاسبة">
+<div class="page-title"><h1>الحاسبة والإعدادات</h1><p>تقديرات قابلة للتعديل، وبيانات خاصة محفوظة على جهازك فقط.</p></div>
+<article class="card"><h2>🧮 تحويل السعرات إلى نقاط</h2><p class="muted">أدخل السعرات والدهون والألياف من الملصق الغذائي للحصول على تقدير بالنظام الكلاسيكي.</p>
+<div class="three-fields"><div><label for="convK">السعرات</label><input id="convK" type="number" min="0" max="99999" step="any" placeholder="250"></div><div><label for="convF">الدهون جم</label><input id="convF" type="number" min="0" max="9999" step="any" placeholder="8"></div><div><label for="convB">الألياف جم</label><input id="convB" type="number" min="0" max="9999" step="any" placeholder="3"></div></div>
+<div class="estimate"><div><small>النقاط التقديرية</small><strong id="convertResult">—</strong></div><span id="convHint" class="micro"></span></div>
+<div class="two-fields"><div><label for="convName">اسم المنتج (اختياري)</label><input id="convName" maxlength="80" placeholder="مثال: بسكويت"></div><div><label for="convGrams">وزن الحصة جم</label><input id="convGrams" type="number" value="100" min="1" max="10000" step="any"></div></div>
+<button class="btn btn-outline full" data-action="converter-save">حفظ هذا الصنف في مكتبتي</button>
+<p class="micro">عند إدخال السعرات فقط تكون النتيجة ناقصة؛ يمكن تقريبها بـ السعرات ÷ ٥٠ لكن الدهون والألياف تؤثر على النقاط.</p>
+</article>
+<article class="card"><h2>🎯 ميزانية النقاط</h2><p class="muted">اختر ميزانيتك اليومية يدويًا. لا يُحسب لك حد علاجي اعتمادًا على الوزن وحده.</p><form id="goalsForm">
+<div class="two-fields"><div><label for="dailyBudget">النقاط اليومية</label><input id="dailyBudget" type="number" min="1" max="150" step=".5" required></div><div><label for="waterGoal">هدف الماء (مل)</label><input id="waterGoal" type="number" min="250" max="6000" step="50" required></div></div><button class="btn btn-primary full" type="submit">حفظ الأهداف</button></form><p class="micro">القيمة الافتراضية نموذج للتجربة وليست هدفًا مخصصًا لك، أو وصفة لإنقاص الوزن.</p></article>
+<article class="card"><div class="row between"><h2>🍽️ أصنافي الخاصة</h2><button class="text-btn" data-action="custom-form">＋ صنف أو صوص جديد</button></div><p class="muted">أضف أي أكلة أو مشروب أو إضافات جديدة، أو صحّح القيم من الملصق الغذائي.</p><div id="customList" class="list compact-list"></div></article>
+<article class="card"><h2>📂 النسخ الاحتياطي والخصوصية</h2><p class="muted">التطبيق لا يحتاج حسابًا ولا يرسل سجل وجباتك إلى خادم. احفظ ملف JSON للاستعادة عند تبديل الجهاز.</p>
+<div class="action-stack"><button class="btn btn-primary" data-action="export">تنزيل نسخة احتياطية JSON</button><label class="btn btn-outline file-label">استيراد نسخة احتياطية<input type="file" id="importFile" accept=".json,application/json" hidden></label></div><p class="micro">تُستبدل سجلات الجهاز عند الاستيراد بعد موافقتك.</p></article>
+<article class="card"><h2>عن طريقة النقاط</h2><p class="formula">النقاط = (السعرات ÷ ٥٠) + (الدهون ÷ ١٢) − (الألياف، بحد ٤ جم ÷ ٥)</p><p class="muted">صيغة تاريخية مبسطة، غير تابعة لـ WeightWatchers. تُعرض النتائج إلى عُشر نقطة؛ المقارنات بين المنتجات والوصفات تقريبية ولا تعادل القيم الرسمية.</p>
+<div class="sources"><a href="https://fdc.nal.usda.gov/" target="_blank" rel="noopener noreferrer">USDA FoodData Central</a><a href="https://github.com/DavidArthur2/food-nutrition-dataset" target="_blank" rel="noopener noreferrer">قاعدة البيانات المفتوحة CC0</a><a href="https://uspto.report/patent/app/20040074675" target="_blank" rel="noopener noreferrer">مرجع صيغة النقاط التاريخية</a></div>
+<p class="micro">قيم المطاعم والبسكويت متغيرة حسب الحجم والبلد والوصفة؛ يُفضّل إدخال قيم العبوة الفعلية عند توفرها. هذا سجل غذائي عام وليس نصيحة أو علاجًا طبيًا.</p>
+</article>
+<footer class="footer">ميزان النقاط ✦ يشبه تصميم «خطوتي»، لكنه مستقل ببياناته ونظامه.</footer>
+</section>
+</main>
+<nav class="bottom-nav" aria-label="التنقل"><button data-go="home" class="nav active"><span>⌂</span><b>يومي</b></button><button data-go="foods" class="nav"><span>▦</span><b>الأطعمة</b></button><button data-go="compose" class="nav"><span>⊕</span><b>وجبة</b></button><button data-go="log" class="nav"><span>▤</span><b>السجل</b></button><button data-go="settings" class="nav"><span>⚙</span><b>الإعدادات</b></button></nav>
+</div>
+<div id="overlay" class="overlay hidden" role="dialog" aria-modal="true"><div class="backdrop" data-action="overlay-close"></div><div class="drawer"><div class="drawer-grip"></div><div id="overlayBody"></div></div></div>
+<div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+</body></html>
