@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="ميزان النقاط">
 <link rel="manifest" href="./manifest.webmanifest"><link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="./icon.svg">
 <link rel="stylesheet" href="./styles.css?v=1"><title>ميزان النقاط — خطوتك اليومية</title>
-<script defer src="./foods-usda.js?v=1"></script><script defer src="./foods-local.js?v=1"></script><script defer src="./app.js?v=1"></script>
+<script defer src="./foods-usda.js?v=1"></script><script defer src="./foods-local.js?v=1"></script><script defer src="./app.js?v=2"></script>
 </head>
 <body>
 <div class="app-shell">
@@ -21,7 +21,7 @@
 <div class="row between center"><div><span class="card-label">رصيدك التقديري اليوم</span><div class="big-number"><span id="pointsRemain">—</span><small>نقطة متبقية</small></div></div><div class="ring" id="todayRing"><b id="ringText">0%</b></div></div>
 <div class="progress"><span id="pointsBar" class="progress-fill mint"></span></div>
 <div class="row between small"><span id="pointsUsed">المستهلك: —</span><span id="pointsBudget">الميزانية: —</span></div>
-<p class="hero-foot">الميزانية يحددها المستخدم، والنقاط غير رسمية وتختلف عن الأنظمة الحديثة.</p>
+<p class="hero-foot" id="budgetModeStatus">النقاط غير رسمية وتختلف عن الأنظمة الحديثة.</p>
 <button class="btn btn-light full" data-go="foods">＋ ابحث وسجّل وجبة</button>
 </article>
 <div class="mini-grid">
@@ -61,8 +61,46 @@
 <button class="btn btn-outline full" data-action="converter-save">حفظ هذا الصنف في مكتبتي</button>
 <p class="micro">عند إدخال السعرات فقط تكون النتيجة ناقصة؛ يمكن تقريبها بـ السعرات ÷ ٥٠ لكن الدهون والألياف تؤثر على النقاط.</p>
 </article>
-<article class="card"><h2>🎯 ميزانية النقاط</h2><p class="muted">اختر ميزانيتك اليومية يدويًا. لا يُحسب لك حد علاجي اعتمادًا على الوزن وحده.</p><form id="goalsForm">
-<div class="two-fields"><div><label for="dailyBudget">النقاط اليومية</label><input id="dailyBudget" type="number" min="1" max="150" step=".5" required></div><div><label for="waterGoal">هدف الماء (مل)</label><input id="waterGoal" type="number" min="250" max="6000" step="50" required></div></div><button class="btn btn-primary full" type="submit">حفظ الأهداف</button></form><p class="micro">القيمة الافتراضية نموذج للتجربة وليست هدفًا مخصصًا لك، أو وصفة لإنقاص الوزن.</p></article>
+<article class="card" id="profileCard">
+<h2>🧭 حساب نقاطك اليومية حسب بياناتك</h2>
+<p class="muted">نسخة تاريخية من طريقة نقاط الرجيم الفرنسي؛ تجمع نقاط العمر والوزن والطول والجنس والنشاط والهدف. <b>ليست توصية علاجية ولا نظام WW الحالي.</b></p>
+<form id="profileForm">
+<div class="two-fields">
+<div><label for="profileSex">الجنس وفق جدول النقاط القديم</label><select id="profileSex" required><option value="">اختر</option><option value="male">ذكر</option><option value="female">أنثى</option></select></div>
+<div><label for="profileAge">العمر (سنة)</label><input id="profileAge" type="number" min="18" max="110" step="1" placeholder="مثال: ٤٥" required></div>
+</div>
+<div class="two-fields">
+<div><label for="profileWeight">الوزن الحالي (كجم)</label><input id="profileWeight" type="number" min="30" max="350" step=".1" placeholder="مثال: ٨٥" required></div>
+<div><label for="profileHeight">الطول (سم)</label><input id="profileHeight" type="number" min="120" max="240" step=".5" placeholder="مثال: ١٧٠" required></div>
+</div>
+<label for="profileActivity">طبيعة الحركة خلال العمل واليوم</label>
+<select id="profileActivity" required>
+<option value="0">معظم اليوم جالس — ٠ نقطة</option>
+<option value="2">جلوس مع وقوف ومشي أحيانًا — نقطتان</option>
+<option value="4">معظم اليوم واقف — ٤ نقاط</option>
+<option value="6">نشاط بدني شاق طوال اليوم — ٦ نقاط</option>
+</select>
+<label for="profileGoal">الهدف</label><select id="profileGoal"><option value="lose">إنقاص الوزن</option><option value="maintain">تثبيت الوزن (+٤ نقاط)</option></select>
+<button class="btn btn-primary full" type="submit">احسب نقاطي واعتمد الميزانية الآلية</button>
+</form>
+<div class="estimate" id="profileResult" aria-live="polite"><div><small>النقاط اليومية المحسوبة</small><strong id="allowanceValue">أدخل البيانات</strong></div><div><small id="allowanceMode">وفق الطريقة القديمة</small></div></div>
+<div id="allowanceBreakdown" class="micro" style="line-height:2;margin-top:8px"></div>
+<p class="micro">النتيجة القديمة قد تتغير عند تغير وزن العشرات أو الفئة العمرية. يراجع التطبيق الوزن إذا سجلته لاحقًا في «يومي». الحد التاريخي ١٧ نقطة ليس ضمانًا لكفاية السعرات أو العناصر الغذائية.</p>
+<p class="micro">المراجع: <a href="https://fr.vivat.be/sante/weight-watchers-pratique_1775" target="_blank" rel="noopener noreferrer">جدول النقاط القديم</a> · <a href="https://www.weightwatchers.com/fr/blog/la-science-et-les-points" target="_blank" rel="noopener noreferrer">شرح WW الحديث</a></p>
+</article>
+<article class="card"><h2>🎯 إدارة ميزانية النقاط</h2>
+<p class="muted">الاختيار الافتراضي سابقًا كان ٢٤ نقطة تجريبية. بعد إدخال بياناتك اختر الحساب الآلي؛ ويمكنك التحويل إلى الميزانية اليدوية في أي وقت.</p>
+<form id="goalsForm">
+<label for="budgetMode">طريقة تحديد الميزانية</label><select id="budgetMode">
+<option value="auto">آلي — حسب بياناتي</option>
+<option value="manual">يدوي — أحدد العدد بنفسي</option>
+</select>
+<div id="manualBudgetWrap"><label for="dailyBudget">نقاطي اليومية يدويًا</label><input id="dailyBudget" type="number" min="1" max="150" step=".5" required></div>
+<div id="autoBudgetWrap" class="hint hidden" style="margin-top:12px">النقاط المستعملة في الرصيد: <strong id="autoBudgetValue">—</strong> يوميًا، وفق بياناتك المسجلة.</div>
+<label for="waterGoal">هدف الماء (مل)</label><input id="waterGoal" type="number" min="250" max="6000" step="50" required>
+<button class="btn btn-primary full" type="submit">حفظ إعدادات الميزانية والماء</button></form>
+<p class="micro">عند عدم إدخال البيانات يبقى الرصيد القديم يدويًا لحماية إعداداتك السابقة، ولا يُعرض على أنه محسوب لشخصك.</p>
+</article>
 <article class="card"><div class="row between"><h2>🍽️ أصنافي الخاصة</h2><button class="text-btn" data-action="custom-form">＋ صنف أو صوص جديد</button></div><p class="muted">أضف أي أكلة أو مشروب أو إضافات جديدة، أو صحّح القيم من الملصق الغذائي.</p><div id="customList" class="list compact-list"></div></article>
 <article class="card"><h2>📂 النسخ الاحتياطي والخصوصية</h2><p class="muted">التطبيق لا يحتاج حسابًا ولا يرسل سجل وجباتك إلى خادم. احفظ ملف JSON للاستعادة عند تبديل الجهاز.</p>
 <div class="action-stack"><button class="btn btn-primary" data-action="export">تنزيل نسخة احتياطية JSON</button><label class="btn btn-outline file-label">استيراد نسخة احتياطية<input type="file" id="importFile" accept=".json,application/json" hidden></label></div><p class="micro">تُستبدل سجلات الجهاز عند الاستيراد بعد موافقتك.</p></article>
