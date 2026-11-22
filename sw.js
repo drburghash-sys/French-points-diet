@@ -1,7 +1,7 @@
 /* French Points Diet: cache static assets for offline use, not personal diet logs */
-const CACHE='french-points-v1.0.0';
+const CACHE='french-points-v1.1.0';
 const PREFIX='french-points-v';
-const CORE=['./','./index.html','./styles.css','./app.js','./foods-usda.js','./foods-local.js','./icon.svg','./manifest.webmanifest'];
+const CORE=['./','./index.html','./styles.css','./app.js?v=2','./foods-usda.js','./foods-local.js','./icon.svg','./manifest.webmanifest'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith(PREFIX)&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{
