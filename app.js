@@ -14,8 +14,23 @@ const today=(d=new Date())=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,'
 const uid=()=>('e'+Date.now().toString(36)+Math.random().toString(36).slice(2,9));
 const cleanSearch=x=>String(x??'').toLowerCase().normalize('NFKD').replace(/[\u064b-\u065f\u0670]/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/[^\p{L}\p{N}]+/gu,' ').trim();
 const foodPoints=(k,f,b)=>Math.max(0,Math.max(0,k)/50+Math.max(0,f)/12-Math.min(Math.max(0,b),4)/5);
-function defaults(){return{version:1,theme:'light',budget:24,waterGoal:2000,logs:[],waterLogs:[],activityLogs:[],weights:[],foods:[],draft:null}}
-function validState(v){if(!v||typeof v!=='object'||!Array.isArray(v.logs)||!Array.isArray(v.foods)||!Array.isArray(v.waterLogs)||!Array.isArray(v.activityLogs)||!Array.isArray(v.weights))throw Error('نسخة غير صالحة');return{...defaults(),...v,budget:limit(num(v.budget,24),1,150),waterGoal:limit(num(v.waterGoal,2000),250,6000),logs:v.logs.slice(-20000),foods:v.foods.slice(-3000),waterLogs:v.waterLogs.slice(-40000),activityLogs:v.activityLogs.slice(-40000),weights:v.weights.slice(-1500),theme:v.theme==='dark'?'dark':'light'}}
+
+function validProfile(p){return !!p&&typeof p==='object'&&['male','female'].includes(p.sex)&&Number.isInteger(Number(p.age))&&Number(p.age)>=18&&Number(p.age)<=110&&Number.isFinite(Number(p.weight))&&Number(p.weight)>=30&&Number(p.weight)<=350&&Number.isFinite(Number(p.height))&&Number(p.height)>=120&&Number(p.height)<=240&&[0,2,4,6].includes(Number(p.activity))&&['lose','maintain'].includes(p.goal)}
+function legacyAllowance(p){
+ if(!validProfile(p))return null;
+ const a=Number(p.age),w=Number(p.weight),h=Number(p.height);
+ const parts={sex:p.sex==='male'?15:7,age:a<=20?5:a<=35?4:a<=50?3:a<=65?2:1,weight:Math.floor(w/10),height:h<160?1:2,activity:Number(p.activity),goal:p.goal==='maintain'?4:0};
+ const raw=Object.values(parts).reduce((sum,n)=>sum+n,0);
+ return {parts,raw,daily:Math.max(raw,17),minimumApplied:raw<17};
+}
+function effectiveBudget(){const a=state.budgetMode==='auto'?legacyAllowance(state.profile):null;return a?a.daily:state.budget}
+function profileFromForm(){return{sex:$('profileSex').value,age:Number($('profileAge').value),weight:Number($('profileWeight').value),height:Number($('profileHeight').value),activity:Number($('profileActivity').value),goal:$('profileGoal').value}}
+function allowanceExplain(a){if(!a)return '';const p=a.parts;return 'الجنس '+p.sex+' + العمر '+p.age+' + الوزن '+p.weight+' + الطول '+p.height+' + النشاط '+p.activity+' + الهدف '+p.goal+' = '+a.raw+' نقطة'+(a.minimumApplied?'، ورُفعت إلى الحد التاريخي ١٧ نقطة (ليس ضمانًا للكفاية الغذائية)':'')}
+function previewAllowance(){const a=legacyAllowance(profileFromForm());$('allowanceValue').textContent=a?fmt(a.daily)+' نقطة / يوم':'أكمل البيانات';$('allowanceMode').textContent=a?'تقدير كلاسيكي غير رسمي':'يلزم العمر والوزن والطول والجنس';$('allowanceBreakdown').textContent=a?allowanceExplain(a):'بعد إدخال البيانات اضغط الاعتماد لحفظ ميزانيتك الآلية.'}
+function renderBudgetControls(){const auto=$('budgetMode').value==='auto',a=legacyAllowance(state.profile);$('manualBudgetWrap').classList.toggle('hidden',auto);$('autoBudgetWrap').classList.toggle('hidden',!auto);$('autoBudgetValue').textContent=a?fmt(a.daily)+' نقطة':'أدخل بياناتك في الحاسبة واحفظها أولًا'}
+
+function defaults(){return{version:2,theme:'light',budget:24,budgetMode:'manual',profile:null,waterGoal:2000,logs:[],waterLogs:[],activityLogs:[],weights:[],foods:[],draft:null}}
+function validState(v){if(!v||typeof v!=='object'||!Array.isArray(v.logs)||!Array.isArray(v.foods)||!Array.isArray(v.waterLogs)||!Array.isArray(v.activityLogs)||!Array.isArray(v.weights))throw Error('نسخة غير صالحة');const p=validProfile(v.profile)?{...v.profile,age:Number(v.profile.age),weight:Number(v.profile.weight),height:Number(v.profile.height),activity:Number(v.profile.activity)}:null;return {...defaults(),...v,version:2,profile:p,budgetMode:v.budgetMode==='auto'&&p?'auto':'manual',budget:limit(num(v.budget,24),1,150),waterGoal:limit(num(v.waterGoal,2000),250,6000),logs:v.logs.slice(-20000),foods:v.foods.slice(-3000),waterLogs:v.waterLogs.slice(-40000),activityLogs:v.activityLogs.slice(-40000),weights:v.weights.slice(-1500),theme:v.theme==='dark'?'dark':'light'}}
 let state=defaults();
 try{const txt=localStorage.getItem(KEY);if(txt)state=validState(JSON.parse(txt))}catch(e){console.warn('تعذر قراءة بيانات ميزان النقاط؛ لم تُحذف البيانات السابقة.',e)}
 let draft=state.draft||{base:null,extras:[],meal:'غداء',date:today(),title:''};
@@ -37,11 +52,11 @@ function dateText(d){return new Date(d+'T12:00:00').toLocaleDateString('ar-SA',{
 function totalsForDay(date){const logs=state.logs.filter(x=>x.date===date),water=state.waterLogs.filter(x=>x.date===date).reduce((a,b)=>a+num(b.ml),0),activity=state.activityLogs.filter(x=>x.date===date).reduce((a,b)=>a+num(b.mins),0);return{logs,points:logs.reduce((a,b)=>a+num(b.points),0),kcal:logs.reduce((a,b)=>a+num(b.kcal),0),water,activity}}
 function latestWeight(){const arr=state.weights.slice().sort((a,b)=>a.date.localeCompare(b.date));return arr.length?arr[arr.length-1].kg:null}
 function weekData(end=today()){const [y,m,d]=end.split('-').map(Number);return Array.from({length:7},(_,i)=>{let x=new Date(y,m-1,d-6+i);let dt=today(x),t=totalsForDay(dt);return{date:dt,short:x.toLocaleDateString('ar-SA',{weekday:'short'}),v:t.points}})}
-function weekHTML(end){const items=weekData(end),max=Math.max(state.budget,...items.map(x=>x.v),1);return items.map(x=>'<div class="week-col"><b>'+fmt(x.v)+'</b><span class="bar" style="height:'+Math.max(2,Math.round(x.v/max*94))+'px"></span><small title="'+x.date+'">'+esc(x.short)+'</small></div>').join('')}
+function weekHTML(end){const items=weekData(end),max=Math.max(effectiveBudget(),...items.map(x=>x.v),1);return items.map(x=>'<div class="week-col"><b>'+fmt(x.v)+'</b><span class="bar" style="height:'+Math.max(2,Math.round(x.v/max*94))+'px"></span><small title="'+x.date+'">'+esc(x.short)+'</small></div>').join('')}
 function detailHTML(log,allowRemove){let d=(log.parts||[]).map(p=>p.n+' × '+fmt(p.qty)+' ('+fmt(p.g*p.qty)+' جم)').join('، ');return '<article class="log-card"><div class="log-title"><div><h3>'+esc(log.title||'وجبة')+'</h3><div class="micro">'+esc(log.meal||'وجبة')+' • '+esc(log.time||'')+'</div></div><strong>'+fmt(log.points)+' <small style="font-size:11px">نقطة</small></strong></div><p class="log-details">'+esc(d||log.note||'إدخال يدوي')+'</p><div class="log-actions"><span class="micro">'+fmt(log.kcal)+' سعرة تقريبية</span>'+(allowRemove?'<button class="text-btn" data-action="remove-log" data-id="'+esc(log.id)+'">حذف</button>':'')+'</div></article>'}
 function renderHome(){
- const t=totalsForDay(today()),remain=state.budget-t.points,pct=limit(Math.round(t.points/state.budget*100),0,100);
- $('todayLabel').textContent=dateText(today());$('pointsRemain').textContent=fmt(remain);$('pointsUsed').textContent='المستهلك: '+fmt(t.points)+' نقطة';$('pointsBudget').textContent='الميزانية: '+fmt(state.budget);$('pointsBar').style.width=pct+'%';$('todayRing').style.setProperty('--pct',pct+'%');$('ringText').textContent=pct+'%';
+ const t=totalsForDay(today()),budget=effectiveBudget(),remain=budget-t.points,pct=limit(Math.round(t.points/budget*100),0,100);
+ $('todayLabel').textContent=dateText(today());$('pointsRemain').textContent=fmt(remain);$('pointsUsed').textContent='المستهلك: '+fmt(t.points)+' نقطة';$('pointsBudget').textContent='الميزانية: '+fmt(budget);$('budgetModeStatus').textContent=state.budgetMode==='auto'&&validProfile(state.profile)?'ميزانية حسب بياناتك وفق الجدول القديم — تقدير غير رسمي.':'رصيد يدوي/تجريبي؛ افتح الإعدادات لحساب النقاط حسب بياناتك.';$('pointsBar').style.width=pct+'%';$('todayRing').style.setProperty('--pct',pct+'%');$('ringText').textContent=pct+'%';
  $('waterToday').textContent=fmt(t.water);$('waterGoalText').textContent='الهدف '+fmt(state.waterGoal)+' مل';$('waterBar').style.width=limit(Math.round(t.water/state.waterGoal*100),0,100)+'%';
  $('activityToday').textContent=fmt(t.activity);$('weightDisplay').textContent=latestWeight()===null?'—':fmt(latestWeight());
  $('homeLogs').innerHTML=t.logs.length?t.logs.slice().reverse().slice(0,8).map(x=>detailHTML(x,true)).join(''):'<div class="empty">لم تُسجّل وجبات اليوم بعد. اختر أول وجبة من دليل الأطعمة.</div>';
@@ -158,6 +173,15 @@ function renderHistory(){
 }
 function renderSettings(){
  $('dailyBudget').value=state.budget;$('waterGoal').value=state.waterGoal;
+ const p=state.profile||{};
+ $('profileSex').value=p.sex||'';
+ $('profileAge').value=p.age??'';
+ $('profileWeight').value=p.weight??'';
+ $('profileHeight').value=p.height??'';
+ $('profileActivity').value=String(p.activity??0);
+ $('profileGoal').value=p.goal||'lose';
+ $('budgetMode').value=state.budgetMode==='auto'&&validProfile(p)?'auto':'manual';
+ previewAllowance();renderBudgetControls();
  $('customList').innerHTML=state.foods.length?state.foods.slice().reverse().map(x=>'<div class="custom-item"><div><b>'+esc(x.n)+'</b><small>'+fmt(x.k)+' سعرة / '+fmt(x.g)+' جم • '+esc(x.c)+'</small></div><div><button data-action="edit-custom" data-id="'+esc(x.id)+'">تعديل</button><button data-action="delete-custom" data-id="'+esc(x.id)+'">حذف</button></div></div>').join(''):'<p class="micro">لم تضف صنفًا خاصًا بعد.</p>';
  updateConverter()
 }
