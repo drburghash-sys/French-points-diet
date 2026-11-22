@@ -247,6 +247,7 @@ function bind(){
  });
  document.addEventListener('input',e=>{
   const el=e.target;
+  if(['profileSex','profileAge','profileWeight','profileHeight','profileActivity','profileGoal'].includes(el.id))previewAllowance();
   if(el.id==='foodSearch'){catalog.query=el.value;renderFoodResults()}
   else if(el.id==='extraSearch'){extraQuery=el.value;renderExtrasResults()}
   else if(['convK','convF','convB'].includes(el.id))updateConverter();
@@ -260,6 +261,8 @@ function bind(){
  });
  document.addEventListener('change',e=>{
   const el=e.target;
+  if(el.id==='budgetMode')renderBudgetControls();
+  if(['profileSex','profileActivity','profileGoal'].includes(el.id))previewAllowance();
   if(el.id==='foodCategory'){catalog.cat=el.value;renderFoodResults()}
   else if(el.id==='foodSource'){catalog.src=el.value;renderFoodResults()}
   else if(el.id==='extraCat'){extraCategory=el.value;renderExtrasResults()}
@@ -275,12 +278,19 @@ function bind(){
   else if(el.id==='importFile'){importBackup(el.files[0]);el.value=''}
  });
  document.addEventListener('submit',e=>{
-  if(!['goalsForm','customFoodForm','activityForm','weightForm'].includes(e.target.id))return;
+  if(!['profileForm','goalsForm','customFoodForm','activityForm','weightForm'].includes(e.target.id))return;
   e.preventDefault();
-  if(e.target.id==='goalsForm'){
-   const b=Number($('dailyBudget').value),w=Number($('waterGoal').value);
+  if(e.target.id==='profileForm'){
+   const p=profileFromForm();
+   if(!validProfile(p))return flashError('أدخل العمر والوزن والطول والجنس والنشاط والهدف بصورة صحيحة');
+   state.profile={...p,updatedDate:today()};state.budgetMode='auto';
+   if(save()){renderSettings();renderHome();toast('تم اعتماد '+fmt(effectiveBudget())+' نقطة يوميًا بحسب الجدول القديم')}
+  }else if(e.target.id==='goalsForm'){
+   const b=Number($('dailyBudget').value),w=Number($('waterGoal').value),mode=$('budgetMode').value;
    if(!Number.isFinite(b)||b<1||b>150||!Number.isFinite(w)||w<250||w>6000)return flashError('راجع أهدافك');
-   state.budget=b;state.waterGoal=w;if(save()){renderHome();toast('تم حفظ الأهداف')}
+   if(mode==='auto'&&!validProfile(state.profile))return flashError('احفظ بياناتك في الحاسبة أولًا');
+   state.budget=b;state.budgetMode=mode==='auto'?'auto':'manual';state.waterGoal=w;
+   if(save()){renderBudgetControls();renderHome();toast('حُفظت الميزانية: '+fmt(effectiveBudget())+' نقطة يوميًا')}
   }else if(e.target.id==='customFoodForm')saveCustomFood();
   else if(e.target.id==='activityForm'){
    const mins=Number($('activityMinutes').value);if(!Number.isInteger(mins)||mins<1||mins>500)return flashError('مدة النشاط غير صالحة');
@@ -288,7 +298,9 @@ function bind(){
   }else if(e.target.id==='weightForm'){
    const date=$('weightDate').value,kg=Number($('weightKg').value);
    if(!Number.isFinite(kg)||kg<20||kg>400||!/^\d{4}-\d{2}-\d{2}$/.test(date))return flashError('وزن أو تاريخ غير صالح');
-   state.weights=state.weights.filter(x=>x.date!==date);state.weights.push({date,kg});if(save()){closeOverlay();renderHome();toast('حُفظ قياس الوزن')}
+   state.weights=state.weights.filter(x=>x.date!==date);state.weights.push({date,kg});
+   if(validProfile(state.profile)&&date>=(state.profile.updatedDate||'0000-00-00')&&kg>=30&&kg<=350){state.profile.weight=kg;state.profile.updatedDate=date}
+   if(save()){closeOverlay();renderHome();toast('حُفظ الوزن'+(state.budgetMode==='auto'?'؛ حصتك اليومية '+fmt(effectiveBudget())+' نقطة':''))}
   }
  });
  $('themeToggle').addEventListener('click',()=>{state.theme=state.theme==='dark'?'light':'dark';save();theme()});
