@@ -12,7 +12,7 @@ const round1=x=>Math.round((x+Number.EPSILON)*10)/10;
 const fmt=x=>round1(x).toLocaleString('ar-SA',{maximumFractionDigits:1});
 const today=(d=new Date())=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
 const uid=()=>('e'+Date.now().toString(36)+Math.random().toString(36).slice(2,9));
-const cleanSearch=x=>String(x??'').toLowerCase().normalize('NFKD').replace(/[\u064b-\u065f\u0670]/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/[^\p{L}\p{N}]+/gu,' ').trim();
+const cleanSearch=x=>String(x??'').toLowerCase().normalize('NFKD').replace(/[\u064b-\u065f\u0670]/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/[٠-٩۰-۹]/g,d=>String('٠١٢٣٤٥٦٧٨٩'.includes(d)?'٠١٢٣٤٥٦٧٨٩'.indexOf(d):'۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).replace(/برغر/g,'برجر').replace(/بروستد/g,'بروست').replace(/[^\p{L}\p{N}]+/gu,' ').trim();
 const foodPoints=(k,f,b)=>Math.max(0,Math.max(0,k)/50+Math.max(0,f)/12-Math.min(Math.max(0,b),4)/5);
 
 function validProfile(p){return !!p&&typeof p==='object'&&['male','female'].includes(p.sex)&&Number.isInteger(Number(p.age))&&Number(p.age)>=18&&Number(p.age)<=110&&Number.isFinite(Number(p.weight))&&Number(p.weight)>=30&&Number(p.weight)<=350&&Number.isFinite(Number(p.height))&&Number(p.height)>=120&&Number(p.height)<=240&&[0,2,4,6].includes(Number(p.activity))&&['lose','maintain'].includes(p.goal)}
@@ -37,7 +37,7 @@ let draft=state.draft||{base:null,extras:[],meal:'غداء',date:today(),title:'
 let view='home',overlayMode='',catalog={query:'',cat:'',src:''},extraQuery='',extraCategory='صوصات وإضافات',historyDate=today(),deferredPrompt=null;
 let FOODS=[],INDEX=new Map(),cats=[];
 function allFoods(){
- const fromLocal=(window.FP_LOCAL||[]).map(x=>({id:x.id,n:x.n,en:'',cat:x.c,g:x.g,k:x.k,f:x.f,b:x.b,u:x.u,src:'تقدير',portions:[{label:x.u,grams:x.g},{label:'١٠٠ جم',grams:100}]}));
+ const fromLocal=(window.FP_LOCAL||[]).map(x=>({id:x.id,n:x.n,en:'',cat:x.c,g:x.g,k:x.k,f:x.f,b:x.b,u:x.u,src:'تقدير',portions:[{label:x.u,grams:x.g},{label:'١٠٠ جم',grams:100},...(x.s||[]).map(p=>({label:p[0],grams:p[1]}))]}));
  const fromUsda=(window.FP_USDA||[]).map(x=>({id:x.id,n:x.n,en:x.en,cat:x.c,g:100,k:x.k,f:x.f??0,b:x.b??0,u:'١٠٠ جرام',src:'USDA',missing:x.f==null||x.b==null,portions:[{label:'١٠٠ جم',grams:100},...(x.s||[]).map(p=>({label:p[0],grams:p[1]}))]}));
  const fromUser=state.foods.map(x=>({id:x.id,n:x.n,en:'',cat:x.c,g:x.g,k:x.k,f:x.f,b:x.b,u:x.u,src:'شخصي',portions:[{label:x.u,grams:x.g},{label:'١٠٠ جم',grams:100}]}));
  FOODS=[...fromLocal,...fromUser,...fromUsda].filter(x=>Number.isFinite(x.k)&&Number.isFinite(x.g)&&x.g>0);
@@ -53,7 +53,7 @@ function totalsForDay(date){const logs=state.logs.filter(x=>x.date===date),water
 function latestWeight(){const arr=state.weights.slice().sort((a,b)=>a.date.localeCompare(b.date));return arr.length?arr[arr.length-1].kg:null}
 function weekData(end=today()){const [y,m,d]=end.split('-').map(Number);return Array.from({length:7},(_,i)=>{let x=new Date(y,m-1,d-6+i);let dt=today(x),t=totalsForDay(dt);return{date:dt,short:x.toLocaleDateString('ar-SA',{weekday:'short'}),v:t.points}})}
 function weekHTML(end){const items=weekData(end),max=Math.max(effectiveBudget(),...items.map(x=>x.v),1);return items.map(x=>'<div class="week-col"><b>'+fmt(x.v)+'</b><span class="bar" style="height:'+Math.max(2,Math.round(x.v/max*94))+'px"></span><small title="'+x.date+'">'+esc(x.short)+'</small></div>').join('')}
-function detailHTML(log,allowRemove){let d=(log.parts||[]).map(p=>p.n+' × '+fmt(p.qty)+' ('+fmt(p.g*p.qty)+' جم)').join('، ');return '<article class="log-card"><div class="log-title"><div><h3>'+esc(log.title||'وجبة')+'</h3><div class="micro">'+esc(log.meal||'وجبة')+' • '+esc(log.time||'')+'</div></div><strong>'+fmt(log.points)+' <small style="font-size:11px">نقطة</small></strong></div><p class="log-details">'+esc(d||log.note||'إدخال يدوي')+'</p><div class="log-actions"><span class="micro">'+fmt(log.kcal)+' سعرة تقريبية</span>'+(allowRemove?'<button class="text-btn" data-action="remove-log" data-id="'+esc(log.id)+'">حذف</button>':'')+'</div></article>'}
+function detailHTML(log,allowRemove){let d=(log.parts||[]).map(p=>(p.n||p.name||'صنف')+' × '+fmt(p.qty)+' ('+fmt(p.g*p.qty)+' جم)').join('، ');return '<article class="log-card"><div class="log-title"><div><h3>'+esc(log.title||'وجبة')+'</h3><div class="micro">'+esc(log.meal||'وجبة')+' • '+esc(log.time||'')+'</div></div><strong>'+fmt(log.points)+' <small style="font-size:11px">نقطة</small></strong></div><p class="log-details">'+esc(d||log.note||'إدخال يدوي')+'</p><div class="log-actions"><span class="micro">'+fmt(log.kcal)+' سعرة تقريبية</span>'+(allowRemove?'<button class="text-btn" data-action="remove-log" data-id="'+esc(log.id)+'">حذف</button>':'')+'</div></article>'}
 function renderHome(){
  const t=totalsForDay(today()),budget=effectiveBudget(),remain=budget-t.points,pct=limit(Math.round(t.points/budget*100),0,100);
  $('todayLabel').textContent=dateText(today());$('pointsRemain').textContent=fmt(remain);$('pointsUsed').textContent='المستهلك: '+fmt(t.points)+' نقطة';$('pointsBudget').textContent='الميزانية: '+fmt(budget);$('budgetModeStatus').textContent=state.budgetMode==='auto'&&validProfile(state.profile)?'ميزانية حسب بياناتك وفق الجدول القديم — تقدير غير رسمي.':'رصيد يدوي/تجريبي؛ افتح الإعدادات لحساب النقاط حسب بياناتك.';$('profileQuickBtn').textContent=state.budgetMode==='auto'&&validProfile(state.profile)?'🧭 تعديل حساب نقاطي اليومية':'🧭 احسب نقاطي حسب العمر والوزن';$('pointsBar').style.width=pct+'%';$('todayRing').style.setProperty('--pct',pct+'%');$('ringText').textContent=pct+'%';
@@ -110,7 +110,7 @@ function renderBuilder(){
  '<div class="addons">'+draft.extras.map((e,i)=>addonHTML(e,i)).join('')+'</div>'+
  '<button class="btn btn-outline full" data-action="extra-picker">＋ صوص أو إضافة أخرى</button>'+
  '<div class="build-summary"><div class="row between center"><div><small>إجمالي الوجبة مع الإضافات</small><div class="total"><span id="draftPoints">—</span> نقطة</div></div><div><small id="draftKcal">— سعرة</small><small id="draftFat">— جم دهون</small></div></div></div>'+
- '<div class="hint" style="margin-top:10px">قد تكون بعض الصوصات داخل حساب الوجبة الأصلية بالفعل؛ لا تضفها مرة ثانية إلا إذا كانت كمية إضافية فعلًا.</div>'+
+ '<div class="hint" style="margin-top:10px">إذا اخترت دجاجًا بدون أرز فأضف الأرز وحده. وإذا اخترت وجبة كاملة بالبطاطس أو المشروب أو الصوص فلا تضف المكوّن المشمول مرة أخرى. وزن الدجاج دون العظم تقديري.</div>'+
  '<div class="two-fields"><div><label for="mealType">نوع الوجبة</label><select id="mealType"><option>فطور</option><option>غداء</option><option>عشاء</option><option>سناك</option><option>مشروب</option></select></div><div><label for="mealDate">التاريخ</label><input id="mealDate" type="date" value="'+esc(draft.date||today())+'"></div></div>'+
  '<label for="mealName">اسم الوجبة في السجل</label><input id="mealName" maxlength="110" value="'+esc(draft.title||main.n)+'">'+
  '<button class="btn btn-primary full" data-action="save-meal">✓ سجل الوجبة بنقاطها</button>';
